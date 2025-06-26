@@ -15,18 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
-        const activityCard = document.createElement("div");
-        activityCard.className = "activity-card";
-
-        const spotsLeft = details.max_participants - details.participants.length;
-
-        activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
-          <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
-        `;
-
+        const activityCard = createActivityCard(name, details);
         activitiesList.appendChild(activityCard);
 
         // Add option to select dropdown
@@ -41,45 +30,97 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Handle form submission
-  signupForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  // Create activity card element
+  function createActivityCard(activityName, activity) {
+    const card = document.createElement("div");
+    card.className = "activity-card";
 
-    const email = document.getElementById("email").value;
-    const activity = document.getElementById("activity").value;
+    const title = document.createElement("h2");
+    title.textContent = activityName;
+    card.appendChild(title);
 
-    try {
-      const response = await fetch(
-        `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
-        {
-          method: "POST",
-        }
-      );
+    const desc = document.createElement("p");
+    desc.textContent = activity.description;
+    card.appendChild(desc);
 
-      const result = await response.json();
+    const schedule = document.createElement("p");
+    schedule.innerHTML = `<strong>Schedule:</strong> ${activity.schedule}`;
+    card.appendChild(schedule);
 
-      if (response.ok) {
-        messageDiv.textContent = result.message;
-        messageDiv.className = "success";
-        signupForm.reset();
-      } else {
-        messageDiv.textContent = result.detail || "An error occurred";
-        messageDiv.className = "error";
-      }
+    const max = document.createElement("p");
+    max.innerHTML = `<strong>Max Participants:</strong> ${activity.max_participants}`;
+    card.appendChild(max);
 
-      messageDiv.classList.remove("hidden");
-
-      // Hide message after 5 seconds
-      setTimeout(() => {
-        messageDiv.classList.add("hidden");
-      }, 5000);
-    } catch (error) {
-      messageDiv.textContent = "Failed to sign up. Please try again.";
-      messageDiv.className = "error";
-      messageDiv.classList.remove("hidden");
-      console.error("Error signing up:", error);
+    // Participants section
+    const participantsSection = document.createElement("div");
+    participantsSection.className = "participants-section";
+    const participantsTitle = document.createElement("h3");
+    participantsTitle.textContent = "Participants";
+    participantsSection.appendChild(participantsTitle);
+    const participantsList = document.createElement("ul");
+    participantsList.className = "participants-list";
+    if (activity.participants && activity.participants.length > 0) {
+      activity.participants.forEach((email) => {
+        const li = document.createElement("li");
+        li.textContent = email;
+        participantsList.appendChild(li);
+      });
+    } else {
+      const li = document.createElement("li");
+      li.textContent = "No participants yet.";
+      participantsList.appendChild(li);
     }
-  });
+    participantsSection.appendChild(participantsList);
+    card.appendChild(participantsSection);
+
+    const signupForm = document.createElement("form");
+    signupForm.className = "signup-form";
+    signupForm.innerHTML = `
+        <input type="email" name="email" placeholder="Your email" required />
+        <button type="submit">Sign Up</button>
+    `;
+    signupForm.onsubmit = async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const activity = document.getElementById("activity").value;
+
+      try {
+        const response = await fetch(
+          `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
+          {
+            method: "POST",
+          }
+        );
+
+        const result = await response.json();
+
+        if (response.ok) {
+          messageDiv.textContent = result.message;
+          messageDiv.className = "success";
+          signupForm.reset();
+        } else {
+          messageDiv.textContent = result.detail || "An error occurred";
+          messageDiv.className = "error";
+        }
+
+        messageDiv.classList.remove("hidden");
+
+        // Hide message after 5 seconds
+        setTimeout(() => {
+          messageDiv.classList.add("hidden");
+        }, 5000);
+      } catch (error) {
+        messageDiv.textContent = "Failed to sign up. Please try again.";
+        messageDiv.className = "error";
+        messageDiv.classList.remove("hidden");
+        console.error("Error signing up:", error);
+      }
+    };
+    card.appendChild(signupForm);
+
+    return card;
+  }
 
   // Initialize app
   fetchActivities();
